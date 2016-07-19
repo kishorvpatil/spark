@@ -28,73 +28,13 @@ import java.util.logging.Logger;
 /**
  * Handle implementation for monitoring apps started as a child process.
  */
-class ChildProcAppHandle implements SparkAppHandle {
-
-  private static final Logger LOG = Logger.getLogger(ChildProcAppHandle.class.getName());
+class ChildProcAppHandle extends AbstractSparkAppHandle {
   private static final ThreadFactory REDIRECTOR_FACTORY =
     new NamedThreadFactory("launcher-proc-%d");
 
-  private final String secret;
-  private final LauncherServer server;
-
   private Process childProc;
-  private boolean disposed;
-  private LauncherConnection connection;
-  private List<Listener> listeners;
-  private State state;
-  private String appId;
-  private OutputRedirector redirector;
-
   ChildProcAppHandle(String secret, LauncherServer server) {
-    this.secret = secret;
-    this.server = server;
-    this.state = State.UNKNOWN;
-  }
-
-  @Override
-  public synchronized void addListener(Listener l) {
-    if (listeners == null) {
-      listeners = new ArrayList<>();
-    }
-    listeners.add(l);
-  }
-
-  @Override
-  public State getState() {
-    return state;
-  }
-
-  @Override
-  public String getAppId() {
-    return appId;
-  }
-
-  @Override
-  public void stop() {
-    CommandBuilderUtils.checkState(connection != null, "Application is still not connected.");
-    try {
-      connection.send(new LauncherProtocol.Stop());
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
-  }
-
-  @Override
-  public synchronized void disconnect() {
-    if (!disposed) {
-      disposed = true;
-      if (connection != null) {
-        try {
-          connection.close();
-        } catch (IOException ioe) {
-          // no-op.
-        }
-      }
-      server.unregister(this);
-      if (redirector != null) {
-        redirector.stop();
-      }
-    }
+    super(server, secret);
   }
 
   @Override
@@ -120,53 +60,10 @@ class ChildProcAppHandle implements SparkAppHandle {
     }
   }
 
-  String getSecret() {
-    return secret;
-  }
-
   void setChildProc(Process childProc, String loggerName) {
     this.childProc = childProc;
     this.redirector = new OutputRedirector(childProc.getInputStream(), loggerName,
       REDIRECTOR_FACTORY);
-  }
-
-  void setConnection(LauncherConnection connection) {
-    this.connection = connection;
-  }
-
-  LauncherServer getServer() {
-    return server;
-  }
-
-  LauncherConnection getConnection() {
-    return connection;
-  }
-
-  void setState(State s) {
-    if (!state.isFinal()) {
-      state = s;
-      fireEvent(false);
-    } else {
-      LOG.log(Level.WARNING, "Backend requested transition from final state {0} to {1}.",
-        new Object[] { state, s });
-    }
-  }
-
-  void setAppId(String appId) {
-    this.appId = appId;
-    fireEvent(true);
-  }
-
-  private synchronized void fireEvent(boolean isInfoChanged) {
-    if (listeners != null) {
-      for (Listener l : listeners) {
-        if (isInfoChanged) {
-          l.infoChanged(this);
-        } else {
-          l.stateChanged(this);
-        }
-      }
-    }
   }
 
 }

@@ -19,6 +19,8 @@ package org.apache.spark.launcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,6 +67,12 @@ public class SparkLauncher {
 
   /** Logger name to use when launching a child process. */
   public static final String CHILD_PROCESS_LOGGER_NAME = "spark.launcher.childProcLoggerName";
+
+  /** Launcher Server Port to use when launching a child process. */
+  public static final String LAUNCHER_INTERNAL_PORT = "spark.launcher.internal.port";
+
+  /** Launcher Server sets this when launching a child process. */
+  public static final String CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET = "spark.launcher.internal.secret";
 
   /**
    * A special value for the resource that tells Spark to not try to process the app resource as a
@@ -400,6 +408,62 @@ public class SparkLauncher {
       handle.addListener(l);
     }
 
+    String appName = getAppName();
+
+    String loggerPrefix = getClass().getPackage().getName();
+    String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
+    ProcessBuilder pb = createBuilder().redirectErrorStream(true);
+    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_PORT,
+      String.valueOf(LauncherServer.getServerInstance().getPort()));
+    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
+    try {
+      handle.setChildProc(pb.start(), loggerName);
+    } catch (IOException ioe) {
+      handle.kill();
+      throw ioe;
+    }
+
+    return handle;
+  }
+
+
+  public SparkAppHandle startApplicationAsync(SparkAppHandle.Listener... listeners) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+
+    /*
+    Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
+    Method meth = cls.getMethod("main", String[].class);
+    List<String> params = builder.buildSparkSubmitArgs(); // init params accordingly
+    meth.invoke(null, (Object) params.toArray()); // static method doesn't have an instance
+   */
+
+    ChildThreadAppHandle handle = LauncherServer.newAppThreadHandle();
+    for (SparkAppHandle.Listener l : listeners) {
+      handle.addListener(l);
+    }
+
+    String appName = getAppName();
+    setConf(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
+    setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
+    String loggerPrefix = getClass().getPackage().getName();
+    //String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
+
+    try {
+      Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
+      Method main = cls.getMethod("main", String[].class);
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs()));
+      submitJobThread.setName(appName);
+      handle.setChildThread(submitJobThread);
+      submitJobThread.start();
+    } catch (ClassNotFoundException cnfe) {
+      throw new IOException(cnfe);
+    } catch (NoSuchMethodException nsme) {
+      throw new IOException(nsme);
+    }
+    return handle;
+
+  }
+
+  private String getAppName() throws IOException {
     String appName = builder.getEffectiveConfig().get(CHILD_PROCESS_LOGGER_NAME);
     if (appName == null) {
       if (builder.appName != null) {
@@ -417,22 +481,9 @@ public class SparkLauncher {
         appName = String.valueOf(COUNTER.incrementAndGet());
       }
     }
-
-    String loggerPrefix = getClass().getPackage().getName();
-    String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
-    ProcessBuilder pb = createBuilder().redirectErrorStream(true);
-    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_PORT,
-      String.valueOf(LauncherServer.getServerInstance().getPort()));
-    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
-    try {
-      handle.setChildProc(pb.start(), loggerName);
-    } catch (IOException ioe) {
-      handle.kill();
-      throw ioe;
-    }
-
-    return handle;
+    return appName;
   }
+
 
   private ProcessBuilder createBuilder() {
     List<String> cmd = new ArrayList<>();
@@ -482,6 +533,28 @@ public class SparkLauncher {
 
     protected void handleExtraArgs(List<String> extra) {
       // No op.
+    }
+
+  }
+
+  private static class SparkSubmitRunner implements Runnable {
+    private final Method main;
+    private final Object args;
+
+    SparkSubmitRunner(Method main, List<String> args) {
+      this.main = main;
+      this.args = args.toArray(new String[args.size()]);
+    }
+
+    @Override
+    public void run() {
+      try {
+        main.invoke(null, args);
+      } catch (RuntimeException re) {
+        throw re;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
 
   }

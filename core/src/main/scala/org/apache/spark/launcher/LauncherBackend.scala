@@ -39,6 +39,10 @@ private[spark] abstract class LauncherBackend {
   def connect(): Unit = {
     val port = sys.env.get(LauncherProtocol.ENV_LAUNCHER_PORT).map(_.toInt)
     val secret = sys.env.get(LauncherProtocol.ENV_LAUNCHER_SECRET)
+    connect(port, secret)
+  }
+
+  def connect(port: Option[Int], secret: Option[String]): Unit = {
     if (port != None && secret != None) {
       val s = new Socket(InetAddress.getLoopbackAddress(), port.get)
       connection = new BackendConnection(s)

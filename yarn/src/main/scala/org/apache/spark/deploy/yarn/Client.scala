@@ -74,6 +74,9 @@ private[spark] class Client(
 
   private val isClusterMode = sparkConf.get("spark.submit.deployMode", "client") == "cluster"
 
+  private val launcherServerPort = sparkConf.get("spark.launcher.internal.port", 0).toInt
+  private val launcherServerSecret = sparkConf.get("spark.submit.deployMode", null)
+
   // AM related configurations
   private val amMemory = if (isClusterMode) {
     sparkConf.get(DRIVER_MEMORY).toInt
@@ -102,6 +105,8 @@ private[spark] class Client(
   private var principal: String = null
   private var keytab: String = null
   private var credentials: Credentials = null
+
+  private var launcherPort = sparkConf.get(LauncherProtocol.ENV_LAUNCHER_PORT)
 
   private val launcherBackend = new LauncherBackend() {
     override def onStopRequest(): Unit = {
@@ -143,7 +148,11 @@ private[spark] class Client(
   def submitApplication(): ApplicationId = {
     var appId: ApplicationId = null
     try {
-      launcherBackend.connect()
+      if(launcherServerSecret !=null && launcherServerPort != 0) {
+        launcherBackend.connect()
+      } else {
+        launcherBackend.connect(launcherServerPort, launcherServerSecret)
+      }
       // Setup the credentials before doing anything else,
       // so we have don't have issues at any point.
       setupCredentials()
