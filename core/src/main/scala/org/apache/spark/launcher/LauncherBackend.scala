@@ -37,16 +37,16 @@ private[spark] abstract class LauncherBackend {
   @volatile private var _isConnected = false
 
   def connect(): Unit = {
-    val port = sys.env.get(LauncherProtocol.ENV_LAUNCHER_PORT).map(_.toInt)
-    val secret = sys.env.get(LauncherProtocol.ENV_LAUNCHER_SECRET)
+    val port = sys.env.get(LauncherProtocol.ENV_LAUNCHER_PORT).map(_.toInt).get
+    val secret = sys.env.get(LauncherProtocol.ENV_LAUNCHER_SECRET).get
     connect(port, secret)
   }
 
-  def connect(port: Option[Int], secret: Option[String]): Unit = {
+  def connect(port: Int, secret: String): Unit = {
     if (port != None && secret != None) {
-      val s = new Socket(InetAddress.getLoopbackAddress(), port.get)
+      val s = new Socket(InetAddress.getLoopbackAddress(), port)
       connection = new BackendConnection(s)
-      connection.send(new Hello(secret.get, SPARK_VERSION))
+      connection.send(new Hello(secret, SPARK_VERSION))
       clientThread = LauncherBackend.threadFactory.newThread(connection)
       clientThread.start()
       _isConnected = true

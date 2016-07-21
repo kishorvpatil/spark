@@ -36,9 +36,9 @@ public final class JavaWordCount {
 
   public static void main(String[] args) throws Exception {
 
-    if (args.length < 1) {
-      System.err.println("Usage: JavaWordCount <file>");
-      System.exit(1);
+    String fileName = "README.md";
+    if (args.length == 1) {
+      fileName = args[0];
     }
 
     SparkSession spark = SparkSession
@@ -46,7 +46,7 @@ public final class JavaWordCount {
       .appName("JavaWordCount")
       .getOrCreate();
 
-    JavaRDD<String> lines = spark.read().textFile(args[0]).javaRDD();
+    JavaRDD<String> lines = spark.read().textFile(fileName).javaRDD();
 
     JavaRDD<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
       @Override
