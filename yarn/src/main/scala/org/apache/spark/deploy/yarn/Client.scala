@@ -147,9 +147,9 @@ private[spark] class Client(
     var appId: ApplicationId = null
     try {
       if ( launcherServerSecret !=null && launcherServerSecret != "" && launcherServerPort != 0) {
-        launcherBackend.connect()
-      } else {
         launcherBackend.connect(launcherServerPort, launcherServerSecret)
+      } else {
+        launcherBackend.connect()
       }
       // Setup the credentials before doing anything else,
       // so we have don't have issues at any point.
