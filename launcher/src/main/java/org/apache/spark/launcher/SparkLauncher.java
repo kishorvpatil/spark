@@ -107,6 +107,7 @@ public class SparkLauncher {
 
   // Visible for testing.
   final SparkSubmitCommandBuilder builder;
+  boolean killIfInterrupted = true;
 
   public SparkLauncher() {
     this(null);
@@ -145,6 +146,17 @@ public class SparkLauncher {
   public SparkLauncher setSparkHome(String sparkHome) {
     checkNotNull(sparkHome, "sparkHome");
     builder.childEnv.put(ENV_SPARK_HOME, sparkHome);
+    return this;
+  }
+
+  /**
+   * Set kill Job flag to request killing of the Spark application on stopping of this process.
+   *
+   * @param killFlag Boolean flag for killing spark Application on termination.
+   * @return This launcher.
+   */
+  public SparkLauncher setKillJobIfInterrupted(boolean killFlag) {
+    killIfInterrupted = killFlag;
     return this;
   }
 
@@ -442,15 +454,40 @@ public class SparkLauncher {
     }
 
     String appName = getAppName();
+    setConfig(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
+    setConfig(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
     setConf(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
+    System.out.println("The secret is: " + handle.getSecret());
     String loggerPrefix = getClass().getPackage().getName();
     //String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
+    ClassLoader loader = SparkLauncher.class.getClassLoader();
+    System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
+
 
     try {
       Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
-      Method main = cls.getMethod("main", String[].class);
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs()));
+      Method main = cls.getDeclaredMethod("main", String[].class);
+      for (Method m : cls.getMethods()) {
+        if ("main".equals(m.getName())) {
+          // for static methods we can use null as instance of class
+          //m.invoke(null, new Object[] {args});
+          System.out.println("Note: Found main method....");
+          break;
+        }
+        System.out.println("NOTE: Method name is: " + m.getName());
+      }
+
+      for (Method m : cls.getDeclaredMethods()) {
+        if ("main".equals(m.getName())) {
+          // for static methods we can use null as instance of class
+          //m.invoke(null, new Object[] {args});
+          System.out.println("Note: Found declared main method....");
+          break;
+        }
+        System.out.println("NOTE: Method declared name is: " + m.getName());
+      }
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs(), killIfInterrupted, handle));
       submitJobThread.setName(appName);
       handle.setChildThread(submitJobThread);
       submitJobThread.start();
@@ -539,17 +576,27 @@ public class SparkLauncher {
 
   private static class SparkSubmitRunner implements Runnable {
     private final Method main;
-    private final Object args;
+    private final List<String> args;
+    private final boolean killJobIfInterrupted;
+    private final AbstractSparkAppHandle childThreadAppHandle;
 
-    SparkSubmitRunner(Method main, List<String> args) {
+    SparkSubmitRunner(Method main, List<String> args, boolean killJobIfInterrupted, AbstractSparkAppHandle childThreadAppHandle) {
       this.main = main;
-      this.args = args.toArray(new String[args.size()]);
+      this.args = args;
+      this.killJobIfInterrupted = killJobIfInterrupted;
+      this.childThreadAppHandle = childThreadAppHandle;
     }
 
     @Override
     public void run() {
       try {
-        main.invoke(null, args);
+        Object argsObj =  args.toArray(new String[args.size()]);
+        main.invoke(null, argsObj);
+      } catch (IllegalAccessException illAcEx) {
+        throw new RuntimeException(illAcEx);
+      } catch (InvocationTargetException invokEx) {
+        invokEx.printStackTrace();
+        throw new RuntimeException(invokEx);
       } catch (RuntimeException re) {
         throw re;
       } catch (Exception e) {
@@ -557,6 +604,22 @@ public class SparkLauncher {
       }
     }
 
-  }
+    private void killJob() {
+      if(killJobIfInterrupted && childThreadAppHandle.getAppId() != null) {
+        List<String> killArgs = new ArrayList<String>(this.args);
+        killArgs.add("--action");
+        killArgs.add("kill");
+        try {
+          Object objArgs = killArgs.toArray(new String[killArgs.size()]);
+          main.invoke(null, objArgs); 
+        } catch (IllegalAccessException illAcEx) {
+          throw new RuntimeException(illAcEx);
+        } catch (InvocationTargetException invokEx) {
+          throw new RuntimeException(invokEx);
+        }
 
+      }
+    }
+
+  }
 }

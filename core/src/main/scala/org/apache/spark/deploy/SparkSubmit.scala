@@ -22,6 +22,8 @@ import java.lang.reflect.{InvocationTargetException, Modifier, UndeclaredThrowab
 import java.net.URL
 import java.security.PrivilegedExceptionAction
 
+import scala.collection.JavaConversions._
+
 import scala.annotation.tailrec
 import scala.collection.mutable.{ArrayBuffer, HashMap, Map}
 
@@ -119,6 +121,11 @@ object SparkSubmit {
       // scalastyle:off println
       printStream.println(appArgs)
       // scalastyle:on println
+      val environmentVars = System.getenv
+      for ((k,v) <- environmentVars) println(s"key: $k, value: $v")
+
+      val properties = System.getProperties
+      for ((k,v) <- properties) println(s"key: $k, value: $v")
     }
     appArgs.action match {
       case SparkSubmitAction.SUBMIT => submit(appArgs)

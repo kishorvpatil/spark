@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Properties;
 
 import static java.lang.Thread.sleep;
 
@@ -23,8 +24,11 @@ public class MyLauncherSample {
     final CommandLineParser cmdLineGnuParser = new GnuParser();
 
     final Options gnuOptions = constructGnuOptions();
+    Properties props = System.getProperties();
+    props.list(System.out);
     CommandLine commandLine;
     String jarLocation = null;
+    String propertiesFile = null;
     String className = null;
     boolean shouldLaunch = false;
     long waitTime = 0;
@@ -36,6 +40,11 @@ public class MyLauncherSample {
       {
         jarLocation = commandLine.getOptionValue("j");
       }
+      if ( commandLine.hasOption("p") )
+      {
+        propertiesFile = commandLine.getOptionValue("p");
+      }
+
       if ( commandLine.hasOption("d") )
       {
         deployMode = commandLine.getOptionValue("d");
@@ -68,6 +77,7 @@ public class MyLauncherSample {
         .setMainClass(className)
         .setMaster("yarn")
         .setDeployMode(deployMode)
+        .setPropertiesFile(propertiesFile)
         .setConf("spark.authenticate", "true")
         .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
         .setConf(SparkLauncher.DRIVER_MEMORY, "2g");
@@ -76,15 +86,20 @@ public class MyLauncherSample {
       System.out.println("NOTE::Waiting for launched process to complete....");
     } else {
       System.out.println("NOTE::Launching spark application as independent process...");
-      SparkAppHandle handle = new SparkLauncher()
-        .setAppResource(jarLocation)
-        .setMainClass(className)
-        .setMaster("yarn")
-        .setDeployMode(deployMode)
-        .setConf("spark.authenticate", "true")
-        .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
-        .setConf(SparkLauncher.DRIVER_MEMORY, "2g")
-        .startApplicationAsync();
+        SparkLauncher launcher = new SparkLauncher()
+          .setAppResource(jarLocation)
+          .setMainClass(className)
+          .setMaster("yarn")
+          .setDeployMode(deployMode)
+          .setVerbose(true);
+
+        if (propertiesFile != null) {
+          launcher = launcher.setPropertiesFile(propertiesFile);
+        }
+        SparkAppHandle handle = launcher.setConf("spark.authenticate", "true")
+          .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
+          .setConf(SparkLauncher.DRIVER_MEMORY, "2g")
+          .startApplicationAsync();
 
       System.out.println("NOTE::Waiting for Application to finish...." + handle.getAppId() + " state is:" +handle.getState());
 
@@ -134,6 +149,7 @@ public class MyLauncherSample {
       .addOption("j", "jar", true, "jar Location")
       .addOption("c", "class", true, "className")
       .addOption("d", "deployMode", true, "deployMode")
+      .addOption("p", "propertiesFile", true, "propertiesFile")
       .addOption("l", "launch", true, "Launch application")
       .addOption("w", "wait", false, "wait in milliseconds");
     return gnuOptions;

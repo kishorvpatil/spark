@@ -120,7 +120,7 @@ class LauncherServer implements Closeable {
     while (server.pending.containsKey(secret)) {
       secret = server.createSecret();
     }
-
+    LOG.info("Creating new secret.." + secret);
     return server.newAppHandle(secret, isThreadHandle);
   }
 
@@ -326,7 +326,7 @@ class LauncherServer implements Closeable {
             handle.setState(SparkAppHandle.State.CONNECTED);
             this.handle = handle;
           } else {
-            throw new IllegalArgumentException("Received Hello for unknown client.");
+            throw new IllegalArgumentException("Received Hello for unknown client." + hello.secret);
           }
         } else {
           if (handle == null) {
