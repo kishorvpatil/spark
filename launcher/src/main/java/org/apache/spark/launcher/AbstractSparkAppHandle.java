@@ -33,14 +33,20 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
   protected State state;
   private LauncherConnection connection;
   private String appId;
-
+  protected boolean killIfInterrupted = false;
+  private List<String> killArguments = null;
   OutputRedirector redirector;
+
 
 
   public AbstractSparkAppHandle(LauncherServer server, String secret) {
     this.server = server;
     this.secret = secret;
     this.state = State.UNKNOWN;
+  }
+
+  protected void setKillIfInterrupted(boolean killFlag) {
+    this.killIfInterrupted = killFlag;
   }
 
   @Override
@@ -129,6 +135,26 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
           l.stateChanged(this);
         }
       }
+    }
+  }
+
+
+  public void setKillArguments(List<String> killArguments) {
+    this.killArguments = killArguments;
+  }
+
+  protected boolean killIfInterrupted() {
+    return killIfInterrupted;
+  }
+
+  protected  void killJob() {
+    if(killIfInterrupted && killArguments != null && appId != null) {
+      killArguments.add("--kill");
+      killArguments.add(appId);
+      LOG.info("Killing job.. " + appId);
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(killArguments));
+      submitJobThread.setName("Killing-app-" + appId);
+      submitJobThread.start();
     }
   }
 }

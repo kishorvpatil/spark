@@ -204,6 +204,7 @@ class LauncherServer implements Closeable {
         }
       }
     }
+
     if (serverThread != null) {
       try {
         serverThread.join();
@@ -366,6 +367,9 @@ class LauncherServer implements Closeable {
           handle.setState(SparkAppHandle.State.LOST);
         }
         handle.disconnect();
+        if(handle.killIfInterrupted()) {
+           handle.killJob();
+        }
       }
     }
 

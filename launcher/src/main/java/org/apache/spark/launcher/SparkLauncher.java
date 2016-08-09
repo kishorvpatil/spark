@@ -464,30 +464,12 @@ public class SparkLauncher {
     ClassLoader loader = SparkLauncher.class.getClassLoader();
     System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
 
-
+    handle.setKillIfInterrupted(killIfInterrupted);
+    handle.setKillArguments(builder.buildSparkSubmitArgs());
     try {
-      Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
-      Method main = cls.getDeclaredMethod("main", String[].class);
-      for (Method m : cls.getMethods()) {
-        if ("main".equals(m.getName())) {
-          // for static methods we can use null as instance of class
-          //m.invoke(null, new Object[] {args});
-          System.out.println("Note: Found main method....");
-          break;
-        }
-        System.out.println("NOTE: Method name is: " + m.getName());
-      }
-
-      for (Method m : cls.getDeclaredMethods()) {
-        if ("main".equals(m.getName())) {
-          // for static methods we can use null as instance of class
-          //m.invoke(null, new Object[] {args});
-          System.out.println("Note: Found declared main method....");
-          break;
-        }
-        System.out.println("NOTE: Method declared name is: " + m.getName());
-      }
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs(), killIfInterrupted, handle));
+      //trying to see if method is available in the classpath.
+      Method main = SparkSubmitRunner.getSparkSubmitMain();
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs()));
       submitJobThread.setName(appName);
       handle.setChildThread(submitJobThread);
       submitJobThread.start();
@@ -574,52 +556,4 @@ public class SparkLauncher {
 
   }
 
-  private static class SparkSubmitRunner implements Runnable {
-    private final Method main;
-    private final List<String> args;
-    private final boolean killJobIfInterrupted;
-    private final AbstractSparkAppHandle childThreadAppHandle;
-
-    SparkSubmitRunner(Method main, List<String> args, boolean killJobIfInterrupted, AbstractSparkAppHandle childThreadAppHandle) {
-      this.main = main;
-      this.args = args;
-      this.killJobIfInterrupted = killJobIfInterrupted;
-      this.childThreadAppHandle = childThreadAppHandle;
-    }
-
-    @Override
-    public void run() {
-      try {
-        Object argsObj =  args.toArray(new String[args.size()]);
-        main.invoke(null, argsObj);
-      } catch (IllegalAccessException illAcEx) {
-        throw new RuntimeException(illAcEx);
-      } catch (InvocationTargetException invokEx) {
-        invokEx.printStackTrace();
-        throw new RuntimeException(invokEx);
-      } catch (RuntimeException re) {
-        throw re;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    private void killJob() {
-      if(killJobIfInterrupted && childThreadAppHandle.getAppId() != null) {
-        List<String> killArgs = new ArrayList<String>(this.args);
-        killArgs.add("--action");
-        killArgs.add("kill");
-        try {
-          Object objArgs = killArgs.toArray(new String[killArgs.size()]);
-          main.invoke(null, objArgs); 
-        } catch (IllegalAccessException illAcEx) {
-          throw new RuntimeException(illAcEx);
-        } catch (InvocationTargetException invokEx) {
-          throw new RuntimeException(invokEx);
-        }
-
-      }
-    }
-
-  }
 }
