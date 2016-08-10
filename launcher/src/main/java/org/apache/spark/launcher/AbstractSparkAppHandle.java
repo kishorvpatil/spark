@@ -168,7 +168,8 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
         } catch (NoSuchMethodException noSuchMethodEx) {
           LOG.info("Yarn not in class path." +  noSuchMethodEx.getMessage());
         }
-        killArguments.add("kill");
+        killArguments.add("application");
+        killArguments.add("-kill");
       } else {
         killArguments.add("--kill");
       }
