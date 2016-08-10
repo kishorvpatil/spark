@@ -158,7 +158,20 @@ class LauncherServer implements Closeable {
       this.serverThread = factory.newThread(new Runnable() {
         @Override
         public void run() {
-          acceptConnections();
+          try {
+            acceptConnections();
+          } catch (InterruptedException intEx) {
+            if (running) {
+              LOG.log(Level.INFO, "Interrupted Launcher server loop.", intEx);
+              try {
+                close();
+              } catch (IOException anotherIOE) {
+                if (running) {
+                  LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
+                }
+              }
+            }
+          }
         }
       });
       serverThread.start();
@@ -245,7 +258,7 @@ class LauncherServer implements Closeable {
     unref();
   }
 
-  private void acceptConnections() {
+  private void acceptConnections() throws InterruptedException {
     try {
       while (running) {
         final Socket client = server.accept();
@@ -280,17 +293,6 @@ class LauncherServer implements Closeable {
     } catch (IOException ioe) {
       if (running) {
         LOG.log(Level.SEVERE, "Error in accept loop.", ioe);
-      }
-    } catch (InterruptedException intEx) {
-      if (running) {
-        LOG.log(Level.INFO, "Interrupted Launcher server loop.", intEx);
-        try {
-          close();
-        } catch (IOException anotherIOE) {
-          if (running) {
-            LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
-          }
-        }
       }
     }
   }
