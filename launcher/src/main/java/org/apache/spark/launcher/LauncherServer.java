@@ -281,6 +281,17 @@ class LauncherServer implements Closeable {
       if (running) {
         LOG.log(Level.SEVERE, "Error in accept loop.", ioe);
       }
+    } catch (InterruptedException intEx) {
+      if (running) {
+        LOG.log(Level.INFO, "Interrupted Launcher server loop.", intEx);
+        try {
+          close();
+        } catch (IOException anotherIOE) {
+          if (running) {
+            LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
+          }
+        }
+      }
     }
   }
 

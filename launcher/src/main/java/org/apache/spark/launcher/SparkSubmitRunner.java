@@ -8,7 +8,7 @@ import java.util.List;
  * Created by kpatil on 8/9/16.
  */
 class SparkSubmitRunner implements Runnable {
-  private final Method main;
+  private Method main;
   private final List<String> args;
 
   SparkSubmitRunner(Method main, List<String> args) {
