@@ -142,6 +142,24 @@ class LauncherServer implements Closeable {
   private LauncherServer() throws IOException {
     this.refCount = new AtomicLong(0);
 
+    Runnable shutdownHook = new Runnable() {
+      @Override
+      public void run() {
+        LOG.log(Level.INFO, "LauncherServer shutdown hook invoked..");
+        if (running) {
+          try {
+            close();
+          } catch (IOException anotherIOE) {
+            if (running) {
+              LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
+            }
+          }
+        }
+      }
+    };
+    Thread shutdownHookThread = new Thread(shutdownHook);
+    Runtime.getRuntime().addShutdownHook(shutdownHookThread);
+
     ServerSocket server = new ServerSocket();
     try {
       server.setReuseAddress(true);

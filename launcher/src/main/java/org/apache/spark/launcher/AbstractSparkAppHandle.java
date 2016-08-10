@@ -18,6 +18,7 @@
 package org.apache.spark.launcher;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -35,6 +36,8 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
   private String appId;
   protected boolean killIfInterrupted = false;
   private List<String> killArguments = null;
+  private String master = null;
+
   OutputRedirector redirector;
 
 
@@ -147,14 +150,38 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
     return killIfInterrupted;
   }
 
+  protected static Method getYarnApplicationMain() throws ClassNotFoundException, NoSuchMethodException {
+    Class<?> cls = Class.forName("org.apache.hadoop.yarn.client.cli.ApplicationCLI");
+    return cls.getDeclaredMethod("main", String[].class);
+  }
+
   protected  void killJob() {
-    if(killIfInterrupted && killArguments != null && appId != null) {
-      killArguments.add("--kill");
+    if(killIfInterrupted && appId != null) {
+      killArguments = new ArrayList<>();
+      Method main = null;
+      if(master != null && master.equals("yarn")) {
+        try {
+          main = getYarnApplicationMain();
+        } catch (ClassNotFoundException clsNotFoundEx) {
+          LOG.info("Yarn not in class path." +  clsNotFoundEx.getMessage());
+        } catch (NoSuchMethodException noSuchMethodEx) {
+          LOG.info("Yarn not in class path." +  noSuchMethodEx.getMessage());
+        }
+      }
+      killArguments.add("-kill");
       killArguments.add(appId);
       LOG.info("Killing job.. " + appId);
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(killArguments));
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, killArguments));
       submitJobThread.setName("Killing-app-" + appId);
       submitJobThread.start();
     }
+  }
+
+  public String getMaster() {
+    return master;
+  }
+
+  public void setMaster(String master) {
+    this.master = master;
   }
 }

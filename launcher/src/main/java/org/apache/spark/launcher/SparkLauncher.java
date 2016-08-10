@@ -466,6 +466,7 @@ public class SparkLauncher {
 
     handle.setKillIfInterrupted(killIfInterrupted);
     handle.setKillArguments(builder.buildSparkSubmitArgs());
+    handle.setMaster(builder.master);
     try {
       //trying to see if method is available in the classpath.
       Method main = SparkSubmitRunner.getSparkSubmitMain();
