@@ -156,6 +156,7 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
   }
 
   protected  void killJob() {
+    LOG.info("Killing job.. ");
     if(killIfInterrupted && appId != null) {
       killArguments = new ArrayList<>();
       Method main = null;

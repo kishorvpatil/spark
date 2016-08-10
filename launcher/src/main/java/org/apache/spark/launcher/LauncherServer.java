@@ -142,19 +142,6 @@ class LauncherServer implements Closeable {
   private LauncherServer() throws IOException {
     this.refCount = new AtomicLong(0);
 
-    Runnable shutdownHook = new Runnable() {
-      @Override
-      public void run() {
-        LOG.log(Level.INFO, "LauncherServer shutdown hook invoked..");
-        try {
-          close();
-        } catch (IOException anotherIOE) {
-          LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
-        }
-      }
-    };
-    Thread shutdownHookThread = new Thread(shutdownHook);
-    Runtime.getRuntime().addShutdownHook(shutdownHookThread);
 
     ServerSocket server = new ServerSocket();
     try {
@@ -168,6 +155,21 @@ class LauncherServer implements Closeable {
       this.timeoutTimer = new Timer("LauncherServer-TimeoutTimer", true);
       this.server = server;
       this.running = true;
+
+      Runnable shutdownHook = new Runnable() {
+        @Override
+        public void run() {
+          LOG.log(Level.INFO, "LauncherServer shutdown hook invoked..");
+          try {
+            close();
+          } catch (IOException anotherIOE) {
+            LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
+          }
+        }
+      };
+
+      Thread shutdownHookThread = new Thread(shutdownHook);
+      Runtime.getRuntime().addShutdownHook(shutdownHookThread);
 
       this.serverThread = factory.newThread(new Runnable() {
         @Override
@@ -225,6 +227,7 @@ class LauncherServer implements Closeable {
         synchronized (clients) {
           List<ServerConnection> copy = new ArrayList<>(clients);
           clients.clear();
+          LOG.info("The number of clients available with LauncherServer are:" + copy.size());
           for (ServerConnection client : copy) {
             client.close();
           }
@@ -384,6 +387,7 @@ class LauncherServer implements Closeable {
 
     @Override
     public void close() throws IOException {
+      LOG.info("Launcher Server Connection is closing...");
       synchronized (clients) {
         clients.remove(this);
       }
