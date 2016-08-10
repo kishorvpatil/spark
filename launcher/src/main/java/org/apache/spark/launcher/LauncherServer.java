@@ -146,14 +146,10 @@ class LauncherServer implements Closeable {
       @Override
       public void run() {
         LOG.log(Level.INFO, "LauncherServer shutdown hook invoked..");
-        if (running) {
-          try {
-            close();
-          } catch (IOException anotherIOE) {
-            if (running) {
-              LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
-            }
-          }
+        try {
+          close();
+        } catch (IOException anotherIOE) {
+          LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
         }
       }
     };
