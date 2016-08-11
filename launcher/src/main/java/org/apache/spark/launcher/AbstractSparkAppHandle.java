@@ -156,8 +156,8 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
   }
 
   protected  void killJob() {
-    LOG.info("Killing job.. ");
-    if(killIfInterrupted && appId != null) {
+    LOG.info("Killing job.. " + master);
+    //if(killIfInterrupted && appId != null) {
       killArguments = new ArrayList<>();
       Method main = null;
       if(master != null && master.equals("yarn")) {
@@ -175,10 +175,14 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
       }
       killArguments.add(appId);
       LOG.info("Killing job.. " + appId);
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, killArguments));
-      submitJobThread.setName("Killing-app-" + appId);
-      submitJobThread.start();
-    }
+      Runnable killTask = new SparkSubmitRunner(main, killArguments);
+      killTask.run();
+      //Thread submitJobThread = new Thread(new SparkSubmitRunner(main, killArguments));
+      //submitJobThread.setName("Killing-app-" + appId);
+      //submitJobThread.start();
+      //submitJobThread.run();
+      LOG.info("Killed job.. " + appId);
+    //}
   }
 
   public String getMaster() {
