@@ -39,6 +39,7 @@ abstract class LauncherConnection implements Closeable, Runnable {
 
   private final Socket socket;
   private final ObjectOutputStream out;
+  private boolean killIfDisconnected;
 
   private volatile boolean closed;
 
@@ -46,6 +47,11 @@ abstract class LauncherConnection implements Closeable, Runnable {
     this.socket = socket;
     this.out = new ObjectOutputStream(socket.getOutputStream());
     this.closed = false;
+  }
+
+  LauncherConnection(Socket socket, Boolean killIfDisconnected) throws IOException{
+    this(socket);
+    this.killIfDisconnected = killIfDisconnected;
   }
 
   protected abstract void handle(Message msg) throws IOException;
@@ -61,7 +67,7 @@ abstract class LauncherConnection implements Closeable, Runnable {
     } catch (EOFException eof) {
       // Remote side has closed the connection, just cleanup.
       try {
-        close();
+        close(killIfDisconnected);
       } catch (Exception unused) {
         // no-op.
       }
@@ -69,7 +75,7 @@ abstract class LauncherConnection implements Closeable, Runnable {
       if (!closed) {
         LOG.log(Level.WARNING, "Error in inbound message handling.", e);
         try {
-          close();
+          close(killIfDisconnected);
         } catch (Exception unused) {
           // no-op.
         }
@@ -86,7 +92,7 @@ abstract class LauncherConnection implements Closeable, Runnable {
       if (!closed) {
         LOG.log(Level.WARNING, "Error when sending message.", ioe);
         try {
-          close();
+          close(killIfDisconnected);
         } catch (Exception unused) {
           // no-op.
         }
@@ -105,6 +111,10 @@ abstract class LauncherConnection implements Closeable, Runnable {
         }
       }
     }
+  }
+
+  public void close(boolean shouldKill) throws IOException {
+    this.close();
   }
 
 }

@@ -74,6 +74,9 @@ public class SparkLauncher {
   /** Launcher Server sets this when launching a child process. */
   public static final String CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET = "spark.launcher.internal.secret";
 
+  /** Kill Flag if Launcher Server goes away. */
+  public static final String CHILD_PROCESS_LAUNCHER_KILL_FLAG = "spark.launcher.kill.flag";
+
   /**
    * A special value for the resource that tells Spark to not try to process the app resource as a
    * file. This is useful when the class being executed is added to the application using other
@@ -428,6 +431,7 @@ public class SparkLauncher {
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_PORT,
       String.valueOf(LauncherServer.getServerInstance().getPort()));
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
+    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
     try {
       handle.setChildProc(pb.start(), loggerName);
     } catch (IOException ioe) {
@@ -456,8 +460,10 @@ public class SparkLauncher {
     String appName = getAppName();
     setConfig(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConfig(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
+    setConfig(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
     setConf(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
+    setConf(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
     System.out.println("The secret is: " + handle.getSecret());
     String loggerPrefix = getClass().getPackage().getName();
     //String loggerName = String.format("%s.app.%s", loggerPrefix, appName);

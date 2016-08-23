@@ -387,7 +387,7 @@ class LauncherServer implements Closeable {
 
     @Override
     public void close() throws IOException {
-      LOG.info("Launcher Server Connection is closing...");
+      LOG.info("ServerConnection is closing...");
       synchronized (clients) {
         clients.remove(this);
       }
@@ -398,9 +398,6 @@ class LauncherServer implements Closeable {
           handle.setState(SparkAppHandle.State.LOST);
         }
         handle.disconnect();
-        if(handle.killIfInterrupted()) {
-           handle.killJob();
-        }
       }
     }
 
