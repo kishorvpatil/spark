@@ -155,19 +155,13 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
     return cls.getDeclaredMethod("main", String[].class);
   }
 
-  protected  void killJob() {
+  protected void killJob() {
     LOG.info("Killing job.. ");
     if(killIfInterrupted && appId != null) {
       killArguments = new ArrayList<>();
       Method main = null;
       if(master != null && master.equals("yarn")) {
-        try {
-          main = getYarnApplicationMain();
-        } catch (ClassNotFoundException clsNotFoundEx) {
-          LOG.info("Yarn not in class path." +  clsNotFoundEx.getMessage());
-        } catch (NoSuchMethodException noSuchMethodEx) {
-          LOG.info("Yarn not in class path." +  noSuchMethodEx.getMessage());
-        }
+        main = getMainKillMethod(main);
         killArguments.add("application");
         killArguments.add("-kill");
       } else {
@@ -175,10 +169,24 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
       }
       killArguments.add(appId);
       LOG.info("Killing job.. " + appId);
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, killArguments));
-      submitJobThread.setName("Killing-app-" + appId);
-      submitJobThread.start();
+      Runnable killTask = new SparkSubmitRunner(main, killArguments);
+      //Thread submitJobThread = new Thread(new SparkSubmitRunner(main, killArguments));
+      //submitJobThread.setName("Killing-app-" + appId);
+      //submitJobThread.start();
+      killTask.run();
+      LOG.info("Killed job thread.. " + appId);
     }
+  }
+
+  private Method getMainKillMethod(Method main) {
+    try {
+      main = getYarnApplicationMain();
+    } catch (ClassNotFoundException clsNotFoundEx) {
+      LOG.info("Yarn not in class path." +  clsNotFoundEx.getMessage());
+    } catch (NoSuchMethodException noSuchMethodEx) {
+      LOG.info("Yarn not in class path." +  noSuchMethodEx.getMessage());
+    }
+    return main;
   }
 
   public String getMaster() {
