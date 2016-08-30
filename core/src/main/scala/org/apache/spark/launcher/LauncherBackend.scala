@@ -40,8 +40,13 @@ private[spark] abstract class LauncherBackend {
   def connect(): Unit = {
     val port = sys.env.get(LauncherProtocol.ENV_LAUNCHER_PORT).map(_.toInt)
     val secret = sys.env.get(LauncherProtocol.ENV_LAUNCHER_SECRET)
+    val killFlagStr = sys.env.get(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG)
     if (port != None && secret != None) {
-      connect(port.get, secret.get)
+      if(killFlagStr != None) {
+        connect(port.get, secret.get, killFlagStr.get)
+      } else {
+        connect(port.get, secret.get)
+      }
     }
   }
 

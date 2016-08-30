@@ -76,6 +76,7 @@ private[spark] class Client(
 
   private val launcherServerPort : Int = sparkConf.get("spark.launcher.internal.port", "0").toInt
   private val launcherServerSecret : String = sparkConf.get("spark.launcher.internal.secret", "")
+  private val launcherServerKillFlag : String = sparkConf.get("spark.launcher.kill.flag", "false")
 
   // AM related configurations
   private val amMemory = if (isClusterMode) {
@@ -147,8 +148,8 @@ private[spark] class Client(
     var appId: ApplicationId = null
     try {
       logInfo("The backend configuration is: %d , %s".format(launcherServerPort, launcherServerSecret))
-      if ( launcherServerSecret !=null && launcherServerSecret != "" && launcherServerPort != 0) {
-        launcherBackend.connect(launcherServerPort, launcherServerSecret)
+      if ( launcherServerSecret !=null && launcherServerSecret != "" && launcherServerPort != 0 && launcherServerKillFlag != null) {
+        launcherBackend.connect(launcherServerPort, launcherServerSecret, launcherServerKillFlag)
       } else {
         launcherBackend.connect()
       }
