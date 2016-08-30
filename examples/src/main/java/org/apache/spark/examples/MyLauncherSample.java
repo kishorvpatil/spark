@@ -70,7 +70,7 @@ public class MyLauncherSample {
     }
 
     try {
-    if(shouldLaunch) {
+/*    if(shouldLaunch) {
       System.out.println("NOTE::Launching spark as a child process");
       SparkLauncher spark = new SparkLauncher()
         .setAppResource(jarLocation)
@@ -79,12 +79,14 @@ public class MyLauncherSample {
         .setDeployMode(deployMode)
         .setPropertiesFile(propertiesFile)
         .setConf("spark.authenticate", "true")
+        //.setConf("spark.eventLog.dir", "hdfs:///mapred/sparkhistory")
         .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
         .setConf(SparkLauncher.DRIVER_MEMORY, "2g");
 
       spark.launch();
       System.out.println("NOTE::Waiting for launched process to complete....");
     } else {
+*/
       System.out.println("NOTE::Launching spark application as independent process...");
         SparkLauncher launcher = new SparkLauncher()
           .setAppResource(jarLocation)
@@ -96,10 +98,16 @@ public class MyLauncherSample {
         if (propertiesFile != null) {
           launcher = launcher.setPropertiesFile(propertiesFile);
         }
-        SparkAppHandle handle = launcher.setConf("spark.authenticate", "true")
+        launcher = launcher.setConf("spark.authenticate", "true")
           .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
-          .setConf(SparkLauncher.DRIVER_MEMORY, "2g")
-          .startApplicationAsync();
+          .setConf(SparkLauncher.DRIVER_MEMORY, "2g");
+
+      SparkAppHandle handle = null;
+      if(shouldLaunch) {
+        handle = launcher.startApplication();
+      } else {
+        handle = launcher.startApplicationAsync();
+      }
 
       System.out.println("NOTE::Waiting for Application to finish...." + handle.getAppId() + " state is:" +handle.getState());
 
@@ -119,7 +127,6 @@ public class MyLauncherSample {
         sleep(1000);
       }
       System.out.println("NOTE::Finished......" + handle.getAppId() + " state is:" +handle.getState());
-     }
     } catch (ClassNotFoundException e)  {
       System.out.println(e.getMessage());
       e.printStackTrace();

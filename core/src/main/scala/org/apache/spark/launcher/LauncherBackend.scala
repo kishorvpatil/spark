@@ -34,7 +34,7 @@ private[spark] abstract class LauncherBackend {
   private var clientThread: Thread = _
   private var connection: BackendConnection = _
   private var lastState: SparkAppHandle.State = _
-  private var killFlag: Boolean = false;
+  private var killFlag: Boolean = false
   @volatile private var _isConnected = false
 
   def connect(): Unit = {
@@ -57,7 +57,7 @@ private[spark] abstract class LauncherBackend {
   }
 
   def connect(port: Int, secret: String, killFlagString: String): Unit = {
-    killFlag = killFlagString.toBoolean()
+    killFlag = killFlagString.toBoolean
     connect(port, secret)
   }
 
