@@ -147,7 +147,7 @@ private[spark] class Client(
   def submitApplication(): ApplicationId = {
     var appId: ApplicationId = null
     try {
-      logInfo("The backend configuration is: %d , %s".format(launcherServerPort, launcherServerSecret))
+      logInfo("The backend configuration is: %d , %s".format(launcherServerPort, launcherServerSecret, launcherServerKillFlag))
       if ( launcherServerSecret !=null && launcherServerSecret != "" && launcherServerPort != 0 && launcherServerKillFlag != null) {
         launcherBackend.connect(launcherServerPort, launcherServerSecret, launcherServerKillFlag)
       } else {

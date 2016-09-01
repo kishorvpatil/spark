@@ -419,6 +419,7 @@ public class SparkLauncher {
    */
   public SparkAppHandle startApplication(SparkAppHandle.Listener... listeners) throws IOException {
     ChildProcAppHandle handle = LauncherServer.newAppHandle();
+    handle.setKillIfInterrupted(killIfInterrupted);
     for (SparkAppHandle.Listener l : listeners) {
       handle.addListener(l);
     }
@@ -428,10 +429,12 @@ public class SparkLauncher {
     String loggerPrefix = getClass().getPackage().getName();
     String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
     ProcessBuilder pb = createBuilder().redirectErrorStream(true);
+    pb.redirectOutput();
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_PORT,
       String.valueOf(LauncherServer.getServerInstance().getPort()));
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
+    System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     try {
       handle.setChildProc(pb.start(), loggerName);
     } catch (IOException ioe) {
@@ -457,6 +460,7 @@ public class SparkLauncher {
       handle.addListener(l);
     }
 
+    handle.setKillIfInterrupted(killIfInterrupted);
     String appName = getAppName();
     setConfig(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConfig(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
@@ -465,12 +469,12 @@ public class SparkLauncher {
     setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
     setConf(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
     System.out.println("The secret is: " + handle.getSecret());
+    System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     String loggerPrefix = getClass().getPackage().getName();
     //String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
     ClassLoader loader = SparkLauncher.class.getClassLoader();
     System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
 
-    handle.setKillIfInterrupted(killIfInterrupted);
     handle.setKillArguments(builder.buildSparkSubmitArgs());
     handle.setMaster(builder.master);
     try {

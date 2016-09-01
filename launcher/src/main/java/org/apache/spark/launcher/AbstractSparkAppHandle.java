@@ -144,6 +144,7 @@ public abstract class AbstractSparkAppHandle implements SparkAppHandle {
 
   public void setKillArguments(List<String> killArguments) {
     this.killArguments = killArguments;
+    System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
   }
 
   protected boolean killIfInterrupted() {

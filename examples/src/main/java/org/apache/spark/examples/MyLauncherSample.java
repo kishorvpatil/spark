@@ -100,7 +100,8 @@ public class MyLauncherSample {
         }
         launcher = launcher.setConf("spark.authenticate", "true")
           .setConf(SparkLauncher.EXECUTOR_MEMORY, "2g")
-          .setConf(SparkLauncher.DRIVER_MEMORY, "2g");
+          .setConf(SparkLauncher.DRIVER_MEMORY, "2g")
+          .setKillJobIfInterrupted(true);
 
       SparkAppHandle handle = null;
       if(shouldLaunch) {
