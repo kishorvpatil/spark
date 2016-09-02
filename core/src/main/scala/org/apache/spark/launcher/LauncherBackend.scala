@@ -60,14 +60,11 @@ private[spark] abstract class LauncherBackend extends Logging {
       clientThread = LauncherBackend.threadFactory.newThread(connection)
       clientThread.start()
       _isConnected = true
-      println("LauncherBackend shutdown hook being registered....." + killFlag)
       logInfo("LauncherBackend shutdown hook being registered....." + killFlag)
-      logInfo("*****NOTE**** " + this.getClass.getSimpleName + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + killFlag + ".")
       if(killFlag) {
         val shutdownHook: Runnable = new Runnable() {
           def run {
             logInfo("LauncherBackend shutdown hook invoked..")
-            println("LauncherBackend shutdown hook invoked..")
             try {
               if(_isConnected && killFlag) {
                 println("LauncherBackend requesting to stop application....")
@@ -76,7 +73,6 @@ private[spark] abstract class LauncherBackend extends Logging {
             }
             catch {
               case anotherIOE: IOException => {
-                println("Error while closing LauncherBackend...", anotherIOE)
                 logInfo("Error while closing LauncherBackend...", anotherIOE)
               }
             }

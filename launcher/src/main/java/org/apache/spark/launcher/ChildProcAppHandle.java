@@ -46,16 +46,11 @@ class ChildProcAppHandle extends AbstractSparkAppHandle {
       try {
         childProc.exitValue();
       } catch (IllegalThreadStateException e) {
-        // Child is still alive. Try to use Java 8's "destroyForcibly()" if available,
-        // fall back to the old API if it's not there.
-/*
         try {
-          Method destroy = childProc.getClass().getMethod("destroyForcibly");
-          destroy.invoke(childProc);
-        } catch (Exception inner) {
           childProc.destroy();
+        } catch (Exception inner) {
+          //NOOP
         }
-*/
       } finally {
         childProc = null;
       }

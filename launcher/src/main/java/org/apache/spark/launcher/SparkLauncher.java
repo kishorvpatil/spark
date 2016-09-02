@@ -419,7 +419,6 @@ public class SparkLauncher {
    */
   public SparkAppHandle startApplication(SparkAppHandle.Listener... listeners) throws IOException {
     ChildProcAppHandle handle = LauncherServer.newAppHandle();
-    handle.setKillIfInterrupted(killIfInterrupted);
     for (SparkAppHandle.Listener l : listeners) {
       handle.addListener(l);
     }
@@ -433,7 +432,7 @@ public class SparkLauncher {
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_PORT,
       String.valueOf(LauncherServer.getServerInstance().getPort()));
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
-    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
+    pb.environment().put(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG, String.valueOf(killIfInterrupted));
     System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     try {
       handle.setChildProc(pb.start(), loggerName);
@@ -448,26 +447,18 @@ public class SparkLauncher {
 
   public SparkAppHandle startApplicationAsync(SparkAppHandle.Listener... listeners) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
-    /*
-    Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
-    Method meth = cls.getMethod("main", String[].class);
-    List<String> params = builder.buildSparkSubmitArgs(); // init params accordingly
-    meth.invoke(null, (Object) params.toArray()); // static method doesn't have an instance
-   */
-
     ChildThreadAppHandle handle = LauncherServer.newAppThreadHandle();
     for (SparkAppHandle.Listener l : listeners) {
       handle.addListener(l);
     }
 
-    handle.setKillIfInterrupted(killIfInterrupted);
     String appName = getAppName();
     setConfig(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConfig(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
-    setConfig(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
+    setConfig(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(killIfInterrupted));
     setConf(LAUNCHER_INTERNAL_PORT,String.valueOf(LauncherServer.getServerInstance().getPort()));
     setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
-    setConf(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(handle.killIfInterrupted()));
+    setConf(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(killIfInterrupted));
     System.out.println("The secret is: " + handle.getSecret());
     System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     String loggerPrefix = getClass().getPackage().getName();
@@ -475,8 +466,6 @@ public class SparkLauncher {
     ClassLoader loader = SparkLauncher.class.getClassLoader();
     System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
 
-    handle.setKillArguments(builder.buildSparkSubmitArgs());
-    handle.setMaster(builder.master);
     try {
       //trying to see if method is available in the classpath.
       Method main = SparkSubmitRunner.getSparkSubmitMain();

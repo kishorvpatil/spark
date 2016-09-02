@@ -89,7 +89,8 @@ class LauncherServer implements Closeable {
   private static volatile LauncherServer serverInstance;
 
   /**
-   * Creates a handle for an app to be launched. This method will start a server if one hasn't been
+   * Creates a handle for an app to be launched using ChildProc.
+   * This method will start a server if one hasn't been
    * started yet. The server is shared for multiple handles, and once all handles are disposed of,
    * the server is shut down.
    */
@@ -98,13 +99,15 @@ class LauncherServer implements Closeable {
   }
 
   /**
-   * Creates a handle for an app to be launched. This method will start a server if one hasn't been
+   * Creates a handle for an app to be launched from a Thread within the current JVM.
+   * This method will start a server if one hasn't been
    * started yet. The server is shared for multiple handles, and once all handles are disposed of,
    * the server is shut down.
    */
   static synchronized ChildThreadAppHandle newAppThreadHandle() throws IOException {
     return (ChildThreadAppHandle) LauncherServer.newAppHandle(true);
   }
+
 
   /**
    * Creates a handle for an app to be launched. This method will start a server if one hasn't been
@@ -120,7 +123,6 @@ class LauncherServer implements Closeable {
     while (server.pending.containsKey(secret)) {
       secret = server.createSecret();
     }
-    LOG.info("Creating new secret.." + secret);
     return server.newAppHandle(secret, isThreadHandle);
   }
 
@@ -142,7 +144,6 @@ class LauncherServer implements Closeable {
   private LauncherServer() throws IOException {
     this.refCount = new AtomicLong(0);
 
-
     ServerSocket server = new ServerSocket();
     try {
       server.setReuseAddress(true);
@@ -155,39 +156,11 @@ class LauncherServer implements Closeable {
       this.timeoutTimer = new Timer("LauncherServer-TimeoutTimer", true);
       this.server = server;
       this.running = true;
-/*
-      Runnable shutdownHook = new Runnable() {
-        @Override
-        public void run() {
-          LOG.log(Level.INFO, "LauncherServer shutdown hook invoked..");
-          try {
-            close();
-          } catch (IOException anotherIOE) {
-            LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
-          }
-        }
-      };
 
-      Thread shutdownHookThread = new Thread(shutdownHook);
-     Runtime.getRuntime().addShutdownHook(shutdownHookThread);
-*/
       this.serverThread = factory.newThread(new Runnable() {
         @Override
         public void run() {
-          try {
-            acceptConnections();
-          } catch (InterruptedException intEx) {
-            if (running) {
-              LOG.log(Level.INFO, "Interrupted Launcher server loop.", intEx);
-              try {
-                close();
-              } catch (IOException anotherIOE) {
-                if (running) {
-                  LOG.log(Level.SEVERE, "Error while closing launcher server connections...", anotherIOE);
-                }
-              }
-            }
-          }
+          acceptConnections();
         }
       });
       serverThread.start();
@@ -227,7 +200,6 @@ class LauncherServer implements Closeable {
         synchronized (clients) {
           List<ServerConnection> copy = new ArrayList<>(clients);
           clients.clear();
-          LOG.info("The number of clients available with LauncherServer are:" + copy.size());
           for (ServerConnection client : copy) {
             client.close();
           }
@@ -275,7 +247,7 @@ class LauncherServer implements Closeable {
     unref();
   }
 
-  private void acceptConnections() throws InterruptedException {
+  private void acceptConnections() {
     try {
       while (running) {
         final Socket client = server.accept();
@@ -357,7 +329,7 @@ class LauncherServer implements Closeable {
             handle.setState(SparkAppHandle.State.CONNECTED);
             this.handle = handle;
           } else {
-            throw new IllegalArgumentException("Received Hello for unknown client." + hello.secret);
+            throw new IllegalArgumentException("Received Hello for unknown client.");
           }
         } else {
           if (handle == null) {
@@ -387,7 +359,6 @@ class LauncherServer implements Closeable {
 
     @Override
     public void close() throws IOException {
-      LOG.info("ServerConnection is closing...");
       synchronized (clients) {
         clients.remove(this);
       }
