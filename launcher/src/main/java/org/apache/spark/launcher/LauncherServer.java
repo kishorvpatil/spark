@@ -155,7 +155,7 @@ class LauncherServer implements Closeable {
       this.timeoutTimer = new Timer("LauncherServer-TimeoutTimer", true);
       this.server = server;
       this.running = true;
-
+/*
       Runnable shutdownHook = new Runnable() {
         @Override
         public void run() {
@@ -169,8 +169,8 @@ class LauncherServer implements Closeable {
       };
 
       Thread shutdownHookThread = new Thread(shutdownHook);
-      Runtime.getRuntime().addShutdownHook(shutdownHookThread);
-
+     Runtime.getRuntime().addShutdownHook(shutdownHookThread);
+*/
       this.serverThread = factory.newThread(new Runnable() {
         @Override
         public void run() {
