@@ -116,6 +116,9 @@ private[spark] abstract class LauncherBackend extends Logging {
     if (connection != null && lastState != state) {
       connection.send(new SetState(state))
       lastState = state
+      if(!_isConnected) {
+        fireStopRequest()
+      }
     }
   }
 
