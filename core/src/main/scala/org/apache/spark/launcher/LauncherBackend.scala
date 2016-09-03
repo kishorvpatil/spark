@@ -157,18 +157,6 @@ private[spark] abstract class LauncherBackend extends Logging {
         _isConnected = false
       }
     }
-
-    override def close(shouldKill: Boolean): Unit = {
-      try {
-        if(shouldKill && !lastState.isFinal()) {
-          fireStopRequest()
-        }
-        super.close()
-      } finally {
-        onDisconnected()
-        _isConnected = false
-      }
-    }
   }
 
 }
