@@ -25,12 +25,12 @@ class SparkSubmitRunner implements Runnable {
   private Method main;
   private final List<String> args;
 
-  SparkSubmitRunner(List<String> args) {
+  SparkSubmitRunner(Method main, List<String> args) {
+    this.main = main;
     this.args = args;
   }
-  
   /**
-   * Trying to see if method is available in the classpath.
+   *  Trying to see if method is available in the classpath.
    */
   protected static Method getSparkSubmitMain() throws ClassNotFoundException, NoSuchMethodException {
       Class<?> cls = Class.forName("org.apache.spark.deploy.SparkSubmit");
@@ -41,7 +41,6 @@ class SparkSubmitRunner implements Runnable {
   public void run() {
     try {
       if(main == null) {
-
         main = getSparkSubmitMain();
       }
       Object argsObj = args.toArray(new String[args.size()]);

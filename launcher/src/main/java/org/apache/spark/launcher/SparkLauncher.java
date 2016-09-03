@@ -465,7 +465,9 @@ public class SparkLauncher {
     System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
 
     try {
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(builder.buildSparkSubmitArgs()));
+      //trying to see if method is available in the classpath.
+      Method main = SparkSubmitRunner.getSparkSubmitMain();
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs()));
       submitJobThread.setName(appName);
       handle.setChildThread(submitJobThread);
       submitJobThread.start();
