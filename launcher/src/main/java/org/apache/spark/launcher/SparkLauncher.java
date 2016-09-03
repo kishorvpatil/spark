@@ -433,7 +433,6 @@ public class SparkLauncher {
       String.valueOf(LauncherServer.getServerInstance().getPort()));
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_SECRET, handle.getSecret());
     pb.environment().put(LauncherProtocol.ENV_LAUNCHER_KILL_FLAG, String.valueOf(killIfInterrupted));
-    System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     try {
       handle.setChildProc(pb.start(), loggerName);
     } catch (IOException ioe) {
@@ -460,16 +459,13 @@ public class SparkLauncher {
     setConf(CHILD_PROCESS_LAUNCHER_INTERNAL_SECRET, handle.getSecret());
     setConf(CHILD_PROCESS_LAUNCHER_KILL_FLAG, String.valueOf(killIfInterrupted));
     System.out.println("The secret is: " + handle.getSecret());
-    System.out.println("*****NOTE**** " + this.getClass().getSimpleName() + " " + LauncherProtocol.ENV_LAUNCHER_KILL_FLAG + ":" + String.valueOf(killIfInterrupted) + ".");
     String loggerPrefix = getClass().getPackage().getName();
     //String loggerName = String.format("%s.app.%s", loggerPrefix, appName);
     ClassLoader loader = SparkLauncher.class.getClassLoader();
     System.out.println(loader.getResource("org/apache/spark/deploy/SparkSubmit.class"));
 
     try {
-      //trying to see if method is available in the classpath.
-      Method main = SparkSubmitRunner.getSparkSubmitMain();
-      Thread submitJobThread = new Thread(new SparkSubmitRunner(main, builder.buildSparkSubmitArgs()));
+      Thread submitJobThread = new Thread(new SparkSubmitRunner(builder.buildSparkSubmitArgs()));
       submitJobThread.setName(appName);
       handle.setChildThread(submitJobThread);
       submitJobThread.start();
